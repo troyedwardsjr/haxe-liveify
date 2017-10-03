@@ -1,27 +1,53 @@
 import * as fs from 'fs';
-import * as process from 'child_process'
-import chokidar = require('chokidar');
+import * as process from 'child_process';
+import * as chokidar from 'chokidar';
+const liveServer = require('live-server');
 
+interface Config {
+  compiler: string;
+  src: string;
+  out: string;
+  hxml: string;
+  platforms: Array<string>;
+}
+
+let config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 let cp : process.ChildProcess;
 
-const liveify = chokidar.watch('Source', {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
+const liveReload = (() => {
+  const params = {
+    port: 4000, 
+    host: "0.0.0.0",
+    root: config.out
+  };
+  liveServer.start(params);
+})()
+
+const liveify : chokidar.FSWatcher = chokidar.watch(config.src, {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
   if(event == 'change') {
-    console.log(event, path);
+    // Kill build processs if change is made.
     if(cp != null) {
       cp.kill('SIGINT');
       cp.stdin.end();
       cp.stdout.destroy();
       cp.stderr.destroy();
     }
-    cp = process.spawn('haxelib', ['run', 'openfl', 'build', 'html5', '-debug']);
+
+    // Run different build commands depending on compiler (haxe, openfl, lime).
+    if(config.compiler == "haxe") {
+      cp = process.spawn('haxe', [config.hxml]);
+    } else {
+      cp = process.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+    }
+
+    // Print stdout to console.
     cp.stdout.on('data', (data: string | Buffer) => {
-      console.log(data);
+      if(typeof data === "string") 
+        console.log(data);
     });
     cp.stderr.on('data', (data: string | Buffer) => {
-      console.log(data);
-    });
-    cp.on('close', (code: number) => {
-      console.log(`Child process closed with code: ${code}`);
+      if(typeof data === "string") 
+        console.log(data);
     });
     cp.on('exit', (code: number) => {
       console.log(`Child process exited with code: ${code}`);
