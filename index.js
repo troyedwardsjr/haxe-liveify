@@ -6,6 +6,7 @@ var chokidar = require("chokidar");
 var liveServer = require('live-server');
 var greenBG = "\x1b[42m";
 var redBG = "\x1b[41m";
+var resetBG = "\x1b[0m";
 var config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 var cp;
 var liveReload = (function () {
@@ -18,7 +19,7 @@ var liveReload = (function () {
 })();
 var liveify = chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all', function (event, path) {
     if (event == 'change') {
-        console.log(greenBG + "Building... \n");
+        console.log(greenBG + "Building..." + resetBG);
         // Kill build processs if change is made.
         if (cp != null) {
             cp.kill('SIGINT');
@@ -47,7 +48,7 @@ var liveify = chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all',
                 console.log("" + redBG + data.toString());
         });
         cp.on('exit', function (code) {
-            console.log(greenBG + "Process complete and exited with code: " + code + " \n");
+            console.log(greenBG + "Process complete and exited with code: " + code + resetBG);
         });
     }
 });

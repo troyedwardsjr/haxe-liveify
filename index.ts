@@ -13,6 +13,7 @@ interface Config {
 
 const greenBG : string = "\x1b[42m";
 const redBG : string = "\x1b[41m";
+const resetBG : string = "\x1b[0m";
 let config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 let cp : process.ChildProcess;
 
@@ -27,7 +28,7 @@ const liveReload = (() => {
 
 const liveify : chokidar.FSWatcher = chokidar.watch(config.src, {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
   if(event == 'change') {
-    console.log(`${greenBG}Building... \n`);
+    console.log(`${greenBG}Building...${resetBG}`);
 
     // Kill build processs if change is made.
     if(cp != null) {
@@ -58,7 +59,7 @@ const liveify : chokidar.FSWatcher = chokidar.watch(config.src, {ignored: /(^|[\
         console.log(`${redBG}${data.toString()}`);
     });
     cp.on('exit', (code: number) => {
-      console.log(`${greenBG}Process complete and exited with code: ${code} \n`);
+      console.log(`${greenBG}Process complete and exited with code: ${code}${resetBG}`);
     });
   }
 });
