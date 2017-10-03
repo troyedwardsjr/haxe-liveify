@@ -1,26 +1,43 @@
 "use strict";
 exports.__esModule = true;
+var fs = require("fs");
 var process = require("child_process");
 var chokidar = require("chokidar");
+var liveServer = require('live-server');
+var config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 var cp;
-var liveify = chokidar.watch('Source', { ignored: /(^|[\/\\])\../ }).on('all', function (event, path) {
+var liveReload = (function () {
+    var params = {
+        port: 4000,
+        host: "0.0.0.0",
+        root: config.out
+    };
+    liveServer.start(params);
+})();
+var liveify = chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all', function (event, path) {
     if (event == 'change') {
-        console.log(event, path);
+        // Kill build processs if change is made.
         if (cp != null) {
             cp.kill('SIGINT');
             cp.stdin.end();
             cp.stdout.destroy();
             cp.stderr.destroy();
         }
-        cp = process.spawn('haxelib', ['run', 'openfl', 'build', 'html5', '-debug']);
+        // Run different build commands depending on compiler (haxe, openfl, lime).
+        if (config.compiler == "haxe") {
+            cp = process.spawn('haxe', [config.hxml]);
+        }
+        else {
+            cp = process.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+        }
+        // Print stdout to console.
         cp.stdout.on('data', function (data) {
-            console.log("" + data);
+            if (typeof data === "string")
+                console.log(data);
         });
         cp.stderr.on('data', function (data) {
-            console.log("" + data);
-        });
-        cp.on('close', function (code) {
-            console.log("Child process closed with code: " + code);
+            if (typeof data === "string")
+                console.log(data);
         });
         cp.on('exit', function (code) {
             console.log("Child process exited with code: " + code);
