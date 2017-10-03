@@ -30,7 +30,6 @@ const liveify : void = (() => {
   chokidar.watch(config.src, {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
     if(event == 'change') {
       console.log(`${greenBG}Building...${resetBG}`);
-
       // Kill build processs if change is made.
       if(cp != null) {
         cp.kill('SIGINT');
@@ -38,14 +37,12 @@ const liveify : void = (() => {
         cp.stdout.destroy();
         cp.stderr.destroy();
       }
-
       // Run different build commands depending on compiler (haxe, openfl, lime).
       if(config.compiler == "haxe") {
         cp = process.spawn('haxe', [config.hxml]);
       } else {
         cp = process.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
       }
-
       // Print stdout to console.
       cp.stdout.on('data', (data: string | Buffer) => {
         if(typeof data === "string") 
