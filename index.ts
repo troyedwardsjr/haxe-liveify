@@ -14,7 +14,7 @@ const greenBG : string = "\x1b[42m";
 const redBG : string = "\x1b[41m";
 const resetBG : string = "\x1b[0m";
 const config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
-const liveServer = require('live-server');
+const liveServer : any = require('live-server');
 
 const liveReload : void = (() => {
   const params = {
