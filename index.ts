@@ -11,6 +11,8 @@ interface Config {
   platforms: Array<string>;
 }
 
+const greenBG : string = "\x1b[42m";
+const redBG : string = "\x1b[41m";
 let config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 let cp : process.ChildProcess;
 
@@ -25,6 +27,8 @@ const liveReload = (() => {
 
 const liveify : chokidar.FSWatcher = chokidar.watch(config.src, {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
   if(event == 'change') {
+    console.log(`${greenBG}Building... \n`);
+
     // Kill build processs if change is made.
     if(cp != null) {
       cp.kill('SIGINT');
@@ -43,14 +47,18 @@ const liveify : chokidar.FSWatcher = chokidar.watch(config.src, {ignored: /(^|[\
     // Print stdout to console.
     cp.stdout.on('data', (data: string | Buffer) => {
       if(typeof data === "string") 
-        console.log(data);
+        console.log(`${greenBG}${data}`);
+    else 
+        console.log(`${greenBG}${data.toString()}`);
     });
     cp.stderr.on('data', (data: string | Buffer) => {
       if(typeof data === "string") 
-        console.log(data);
+        console.log(`${redBG}${data}`);
+      else 
+        console.log(`${redBG}${data.toString()}`);
     });
     cp.on('exit', (code: number) => {
-      console.log(`Child process exited with code: ${code}`);
+      console.log(`${greenBG}Process complete and exited with code: ${code} \n`);
     });
   }
 });

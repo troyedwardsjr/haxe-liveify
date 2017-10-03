@@ -4,6 +4,8 @@ var fs = require("fs");
 var process = require("child_process");
 var chokidar = require("chokidar");
 var liveServer = require('live-server');
+var greenBG = "\x1b[42m";
+var redBG = "\x1b[41m";
 var config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 var cp;
 var liveReload = (function () {
@@ -16,6 +18,7 @@ var liveReload = (function () {
 })();
 var liveify = chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all', function (event, path) {
     if (event == 'change') {
+        console.log(greenBG + "Building... \n");
         // Kill build processs if change is made.
         if (cp != null) {
             cp.kill('SIGINT');
@@ -33,14 +36,18 @@ var liveify = chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all',
         // Print stdout to console.
         cp.stdout.on('data', function (data) {
             if (typeof data === "string")
-                console.log(data);
+                console.log("" + greenBG + data);
+            else
+                console.log("" + greenBG + data.toString());
         });
         cp.stderr.on('data', function (data) {
             if (typeof data === "string")
-                console.log(data);
+                console.log("" + redBG + data);
+            else
+                console.log("" + redBG + data.toString());
         });
         cp.on('exit', function (code) {
-            console.log("Child process exited with code: " + code);
+            console.log(greenBG + "Process complete and exited with code: " + code + " \n");
         });
     }
 });
