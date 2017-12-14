@@ -16,7 +16,6 @@ const redBG : string = "\x1b[41m";
 const resetBG : string = "\x1b[0m";
 const liveServer : any = require('live-server');
 const config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
-
 let procPool : Array<ChildProcess>  = new Array<ChildProcess>();
 
 const handleExit : void = (() => {
@@ -51,6 +50,7 @@ const liveReload : void = (() => {
     logLevel: 0
   };
   liveServer.start(params);
+  console.log(`Listening on http://${params.host}:${params.port}/`);
 })();
 
 const liveify : void = (() => {
