@@ -40,6 +40,7 @@ var liveReload = (function () {
         logLevel: 0
     };
     liveServer.start(params);
+    console.log("Listening on http://" + params.host + ":" + params.port + "/");
 })();
 var liveify = (function () {
     var cp;
