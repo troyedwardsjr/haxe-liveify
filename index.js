@@ -1,18 +1,43 @@
 "use strict";
 exports.__esModule = true;
 var fs = require("fs");
-var process = require("child_process");
+var childProc = require("child_process");
 var chokidar = require("chokidar");
 var greenBG = "\x1b[42m";
 var redBG = "\x1b[41m";
 var resetBG = "\x1b[0m";
-var config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 var liveServer = require('live-server');
+var config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
+var procPool = new Array();
+var handleExit = (function () {
+    var exitCallback = function () {
+        procPool.map(function (cp) {
+            cp.kill('SIGINT');
+            cp.stdin.end();
+            cp.stdout.destroy();
+            cp.stderr.destroy();
+            console.log("Haxe-Liveify has exited.");
+        });
+    };
+    process.on('exit', function () {
+        exitCallback();
+    });
+    process.on('SIGINT', function () {
+        console.log('Ctrl-C...');
+        process.exit(2);
+    });
+    process.on('uncaughtException', function (e) {
+        console.log('Uncaught Exception...');
+        console.log(e.stack);
+        process.exit(99);
+    });
+})();
 var liveReload = (function () {
     var params = {
         port: 4000,
         host: "0.0.0.0",
-        root: config.out
+        root: config.out,
+        logLevel: 0
     };
     liveServer.start(params);
 })();
@@ -29,11 +54,13 @@ var liveify = (function () {
                 cp.stderr.destroy();
             }
             // Run different build commands depending on compiler (haxe, openfl, lime).
-            if (config.compiler == "haxe") {
-                cp = process.spawn('haxe', [config.hxml]);
+            if (config.compiler === "haxe") {
+                cp = childProc.spawn('haxe', [config.hxml]);
+                procPool.push(cp);
             }
             else {
-                cp = process.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+                cp = childProc.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+                procPool.push(cp);
             }
             // Print stdout to console.
             cp.stdout.on('data', function (data) {

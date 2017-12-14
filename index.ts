@@ -1,6 +1,7 @@
 import * as fs from 'fs';
-import * as process from 'child_process';
+import * as childProc from 'child_process';
 import * as chokidar from 'chokidar';
+import { ChildProcess } from 'child_process';
 
 interface Config {
   compiler: string;
@@ -16,17 +17,44 @@ const resetBG : string = "\x1b[0m";
 const liveServer : any = require('live-server');
 const config : Config = JSON.parse(fs.readFileSync('./hx-liveify.json', 'utf8'));
 
+let procPool : Array<ChildProcess>  = new Array<ChildProcess>();
+
+const handleExit : void = (() => {
+  const exitCallback : Function = () => {
+    procPool.map((cp:ChildProcess) => {
+      cp.kill('SIGINT');
+      cp.stdin.end();
+      cp.stdout.destroy();
+      cp.stderr.destroy();
+      console.log("Haxe-Liveify has exited.");
+    });
+  }
+  process.on('exit', function () {
+    exitCallback();
+  });
+  process.on('SIGINT', function () {
+    console.log('Ctrl-C...');
+    process.exit(2);
+  });
+  process.on('uncaughtException', function (e) {
+    console.log('Uncaught Exception...');
+    console.log(e.stack);
+    process.exit(99);
+  });
+})();
+
 const liveReload : void = (() => {
   const params = {
     port: 4000, 
     host: "0.0.0.0",
-    root: config.out
+    root: config.out,
+    logLevel: 0
   };
   liveServer.start(params);
 })();
 
 const liveify : void = (() => {
-  let cp : process.ChildProcess;
+  let cp : ChildProcess;
   chokidar.watch(config.src, {ignored: /(^|[\/\\])\../}).on('all', (event:string, path:string) => {
     if(event == 'change') {
       console.log(`${greenBG}Building...${resetBG}`);
@@ -38,10 +66,12 @@ const liveify : void = (() => {
         cp.stderr.destroy();
       }
       // Run different build commands depending on compiler (haxe, openfl, lime).
-      if(config.compiler == "haxe") {
-        cp = process.spawn('haxe', [config.hxml]);
+      if(config.compiler === "haxe") {
+        cp = childProc.spawn('haxe', [config.hxml]);
+        procPool.push(cp);
       } else {
-        cp = process.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+        cp = childProc.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+        procPool.push(cp);
       }
       // Print stdout to console.
       cp.stdout.on('data', (data: string | Buffer) => {
