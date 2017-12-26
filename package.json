@@ -14,13 +14,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chokidar": "^1.7.0",
-    "live-server": "^1.2.0"
+    "live-server": "^1.2.0",
+    "watchr": "^3.0.1"
   },
   "devDependencies": {
     "nodemon": "^1.11.0",
     "@types/node": "^8.0.17",
-    "@types/chokidar": "^1.7.1",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2"
   }

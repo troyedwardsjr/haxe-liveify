@@ -2,7 +2,7 @@
 exports.__esModule = true;
 var fs = require("fs");
 var childProc = require("child_process");
-var chokidar = require("chokidar");
+var watchr = require('watchr');
 var greenBG = "\x1b[42m";
 var redBG = "\x1b[41m";
 var resetBG = "\x1b[0m";
@@ -44,42 +44,52 @@ var liveReload = (function () {
 })();
 var liveify = (function () {
     var cp;
-    chokidar.watch(config.src, { ignored: /(^|[\/\\])\../ }).on('all', function (event, path) {
-        if (event == 'change') {
-            console.log(greenBG + "Building..." + resetBG);
-            // Kill build processs if change is made.
-            if (cp != null) {
-                cp.kill('SIGINT');
-                cp.stdin.end();
-                cp.stdout.destroy();
-                cp.stderr.destroy();
-            }
-            // Run different build commands depending on compiler (haxe, openfl, lime).
-            if (config.compiler === "haxe") {
-                cp = childProc.spawn('haxe', [config.hxml]);
-                procPool.push(cp);
-            }
-            else {
-                cp = childProc.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
-                procPool.push(cp);
-            }
-            // Print stdout to console.
-            cp.stdout.on('data', function (data) {
-                if (typeof data === "string")
-                    console.log("" + greenBG + data);
-                else
-                    console.log("" + greenBG + data.toString());
-            });
-            cp.stderr.on('data', function (data) {
-                if (typeof data === "string")
-                    console.log("" + redBG + data);
-                else
-                    console.log("" + redBG + data.toString());
-            });
-            cp.on('exit', function (code) {
-                console.log(greenBG + "Process complete and exited with code: " + code + resetBG);
-            });
+    var path = "" + config.src;
+    var listener = function (changeType, fullPath, currentStat, previousStat) {
+        switch (changeType) {
+            case 'update' || 'create' || 'delete':
+                console.log(greenBG + "Building..." + resetBG);
+                // Kill build processs if change is made.
+                if (cp != null) {
+                    console.log("Current proccess killed.");
+                    cp.kill('SIGINT');
+                    cp.stdin.end();
+                    cp.stdout.destroy();
+                    cp.stderr.destroy();
+                }
+                // Run different build commands depending on compiler (haxe, openfl, lime).
+                if (config.compiler === "haxe") {
+                    cp = childProc.spawn('haxe', [config.hxml]);
+                    procPool.push(cp);
+                }
+                else {
+                    cp = childProc.spawn('haxelib', ['run', config.compiler, 'build'].concat(config.platforms));
+                    procPool.push(cp);
+                }
+                // Print stdout to console.
+                cp.stdout.on('data', function (data) {
+                    if (typeof data === "string")
+                        console.log("" + greenBG + data);
+                    else
+                        console.log("" + greenBG + data.toString());
+                });
+                cp.stderr.on('data', function (data) {
+                    if (typeof data === "string")
+                        console.log("" + redBG + data);
+                    else
+                        console.log("" + redBG + data.toString());
+                });
+                cp.on('exit', function (code) {
+                    console.log(greenBG + "Process complete and exited with code: " + code + resetBG);
+                });
+                break;
         }
-    });
+    };
+    var next = function (err) {
+        if (err)
+            return console.log('watch failed on', path, 'with error', err);
+        console.log('watch successful on', path);
+    };
+    var stalker = watchr.open(path, listener, next);
 })();
 exports["default"] = liveify;
